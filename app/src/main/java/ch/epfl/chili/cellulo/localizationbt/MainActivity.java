@@ -1,5 +1,6 @@
 package ch.epfl.chili.cellulo.localizationbt;
 
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.Legend.LegendForm;
 import com.github.mikephil.charting.components.XAxis;
@@ -42,6 +44,11 @@ public class MainActivity extends FragmentActivity implements
     private static final int MY_PERMISSION_REQUEST_CONSTANT = 1;
     public static final String deviceAddress = "00:06:66:74:3E:93";
     private BluetoothLeService LE = new BluetoothLeService();
+
+    public void do_scan(View v) {
+        Intent intent = new Intent(this, ScanActivity.class);
+        startActivity(intent);
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void reconnect1() {
@@ -96,6 +103,7 @@ public class MainActivity extends FragmentActivity implements
 
         // enable description text
         mChart.getDescription().setEnabled(true);
+        mChart.getDescription().setText("Signal level vs time");
 
         // enable touch gestures
         mChart.setTouchEnabled(true);
