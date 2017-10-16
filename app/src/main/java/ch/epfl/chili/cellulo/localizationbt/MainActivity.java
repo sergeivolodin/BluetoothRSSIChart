@@ -30,20 +30,28 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 
+import java.util.ArrayList;
+
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
 public class MainActivity extends FragmentActivity implements
         OnChartValueSelectedListener {
 
-    private int iterationsSinceConnect = 0;
-    private static int iterationsBeforeRSSI = 5;
+    private ArrayList<Integer> iterationsSinceConnect = null;
 
     protected Typeface mTfRegular;
     protected Typeface mTfLight;
     private LineChart mChart;
     private static final int MY_PERMISSION_REQUEST_CONSTANT = 1;
-    public static final String deviceAddress = "00:06:66:74:3E:93";
-    private BluetoothLeService LE = new BluetoothLeService();
+    public static ArrayList<String> macs = new ArrayList<String>();
+    private ArrayList<BluetoothLeService> LEs = null;
+
+
+    private int[] mColors = new int[] {
+            ColorTemplate.VORDIPLOM_COLORS[0],
+            ColorTemplate.VORDIPLOM_COLORS[1],
+            ColorTemplate.VORDIPLOM_COLORS[2]
+    };
 
     public void do_scan(View v) {
         Intent intent = new Intent(this, ScanActivity.class);
@@ -51,39 +59,53 @@ public class MainActivity extends FragmentActivity implements
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void reconnect1() {
-        iterationsSinceConnect = 0;
-        LE.disconnect();
-        LE.close();
-        LE.initialize(getApplicationContext());
-        LE.connect(deviceAddress);
-        LE.last_rssi_success = 0;
+    public void reconnect1(int i) {
+        if(LEs == null)
+            return;
+        iterationsSinceConnect.set(i, 0);
+        LEs.get(i).disconnect();
+        LEs.get(i).close();
+        LEs.get(i).initialize(getApplicationContext());
+        LEs.get(i).connect(macs.get(i));
+        LEs.get(i).last_rssi_success = 0;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void reconnect(View v) {
-        reconnect1();
+        if(LEs == null)
+            return;
+        for(int i = 0; i < LEs.size(); i++)
+            reconnect1(i);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void refresh1() {
-        if(iterationsSinceConnect > 10 && LE.last_rssi_success == 0) {
-            reconnect1();
+    public void refresh1(int i) {
+        if(LEs == null)
+            return;
+        if(iterationsSinceConnect.get(i) > 10 && LEs.get(i).last_rssi_success == 0) {
+            reconnect1(i);
             return;
         }
 
-        if(LE.last_rssi_success == 1)
-            addEntry(LE.last_rssi);
-        iterationsSinceConnect++;
+        if(LEs.get(i).last_rssi_success == 1)
+            addEntry(i, LEs.get(i).last_rssi);
+        else
+            addEntry(i, -100);
 
-        if(iterationsSinceConnect >= iterationsBeforeRSSI) {
-            LE.readRssi();
+        int iterationsBeforeRSSI = 5;
+        if(iterationsSinceConnect.get(i) >= iterationsBeforeRSSI) {
+            LEs.get(i).readRssi();
         }
+
+        iterationsSinceConnect.set(i, iterationsSinceConnect.get(i) + 1);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void refresh(View v) {
-        refresh1();
+        if(LEs == null)
+            return;
+        for(int i = 0; i < LEs.size(); i++)
+            refresh1(i);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -100,35 +122,16 @@ public class MainActivity extends FragmentActivity implements
 
         mChart = (LineChart) findViewById(R.id.chart1);
         mChart.setOnChartValueSelectedListener(this);
-
-        // enable description text
         mChart.getDescription().setEnabled(true);
         mChart.getDescription().setText("Signal level vs time");
-
-        // enable touch gestures
         mChart.setTouchEnabled(true);
-
-        // enable scaling and dragging
         mChart.setDragEnabled(true);
         mChart.setScaleEnabled(true);
         mChart.setDrawGridBackground(false);
-
-        // if disabled, scaling can be done on x- and y-axis separately
         mChart.setPinchZoom(true);
-
-        // set an alternative background color
         mChart.setBackgroundColor(Color.LTGRAY);
 
-        LineData data = new LineData();
-        data.setValueTextColor(Color.WHITE);
-
-        // add empty data
-        mChart.setData(data);
-
-        // get the legend (only possible after setting data)
         Legend l = mChart.getLegend();
-
-        // modify the legend ...
         l.setForm(LegendForm.LINE);
         l.setTypeface(mTfLight);
         l.setTextColor(Color.WHITE);
@@ -150,19 +153,65 @@ public class MainActivity extends FragmentActivity implements
         YAxis rightAxis = mChart.getAxisRight();
         rightAxis.setEnabled(false);
 
-        reconnect1();
+        try {
+            macs = (ArrayList<String>) getIntent().getSerializableExtra("macs");
+        }
+        catch(Exception e)
+        {
+            macs = null;
+        }
 
+        Log.d("STATE", "MAIN" + macs);
+        if(macs != null) {
+            int L = macs.size();
+            iterationsSinceConnect = new ArrayList<Integer>();
+            for(int i = 0; i < L; i++) iterationsSinceConnect.add(0);
+
+            ArrayList<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
+
+            for (int z = 0; z < L; z++) {
+
+                ArrayList<Entry> values = new ArrayList<Entry>();
+                values.add(new Entry(0, (float) 0));
+
+                LineDataSet d = new LineDataSet(values, macs.get(z));
+                d.setLineWidth(2.5f);
+                d.setCircleRadius(4f);
+
+                int color = mColors[z % mColors.length];
+                d.setColor(color);
+                d.setCircleColor(color);
+                dataSets.add(d);
+            }
+
+            LineData data = new LineData(dataSets);
+            mChart.setData(data);
+
+            LEs = new ArrayList<BluetoothLeService>();
+            for (int i = 0; i < L; i++) {
+                LEs.add(new BluetoothLeService());
+                reconnect1(i);
+            }
+
+            spawnUpdateThread();
+        }
+    }
+
+    private void spawnUpdateThread() {
+        if(LEs == null)
+            return;
         Thread t = new Thread() {
 
             @Override
             public void run() {
                 try {
                     while (!isInterrupted()) {
-                        Thread.sleep(1000);
+                        Thread.sleep(100);
                         runOnUiThread(new Runnable() {
+                            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
                             @Override
                             public void run() {
-                                refresh1();
+                                refresh(null);
                             }
                         });
                     }
@@ -172,155 +221,16 @@ public class MainActivity extends FragmentActivity implements
         };
 
         t.start();
-
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.realtime, menu);
-        return true;
-    }
+    private void addEntry(int i, int value) {
+        if(LEs == null)
+            return;
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        switch (item.getItemId()) {
-            case R.id.actionAdd: {
-                addEntry();
-                break;
-            }
-            case R.id.actionClear: {
-                mChart.clearValues();
-                Toast.makeText(this, "Chart cleared!", Toast.LENGTH_SHORT).show();
-                break;
-            }
-            case R.id.actionFeedMultiple: {
-                feedMultiple();
-                break;
-            }
-        }
-        return true;
-    }
-
-    private void addEntry(int value) {
-
-        LineData data = mChart.getData();
-
-        if (data != null) {
-
-            ILineDataSet set = data.getDataSetByIndex(0);
-            // set.addEntry(...); // can be called as well
-
-            if (set == null) {
-                set = createSet();
-                data.addDataSet(set);
-            }
-
-            data.addEntry(new Entry(set.getEntryCount(), (float) value), 0);
-            data.notifyDataChanged();
-
-            // let the chart know it's data has changed
-            mChart.notifyDataSetChanged();
-
-            // limit the number of visible entries
-            mChart.setVisibleXRangeMaximum(120);
-            // mChart.setVisibleYRange(30, AxisDependency.LEFT);
-
-            // move to the latest entry
-            mChart.moveViewToX(data.getEntryCount());
-
-            // this automatically refreshes the chart (calls invalidate())
-            // mChart.moveViewTo(data.getXValCount()-7, 55f,
-            // AxisDependency.LEFT);
-        }
-    }
-
-
-    private void addEntry() {
-
-        LineData data = mChart.getData();
-
-        if (data != null) {
-
-            ILineDataSet set = data.getDataSetByIndex(0);
-            // set.addEntry(...); // can be called as well
-
-            if (set == null) {
-                set = createSet();
-                data.addDataSet(set);
-            }
-
-            data.addEntry(new Entry(set.getEntryCount(), (float) (Math.random() * 40) + 30f), 0);
-            data.notifyDataChanged();
-
-            // let the chart know it's data has changed
-            mChart.notifyDataSetChanged();
-
-            // limit the number of visible entries
-            mChart.setVisibleXRangeMaximum(120);
-            // mChart.setVisibleYRange(30, AxisDependency.LEFT);
-
-            // move to the latest entry
-            mChart.moveViewToX(data.getEntryCount());
-
-            // this automatically refreshes the chart (calls invalidate())
-            // mChart.moveViewTo(data.getXValCount()-7, 55f,
-            // AxisDependency.LEFT);
-        }
-    }
-
-    private LineDataSet createSet() {
-
-        LineDataSet set = new LineDataSet(null, "Dynamic Data");
-        set.setAxisDependency(AxisDependency.LEFT);
-        set.setColor(ColorTemplate.getHoloBlue());
-        set.setCircleColor(Color.WHITE);
-        set.setLineWidth(2f);
-        set.setCircleRadius(4f);
-        set.setFillAlpha(65);
-        set.setFillColor(ColorTemplate.getHoloBlue());
-        set.setHighLightColor(Color.rgb(244, 117, 117));
-        set.setValueTextColor(Color.WHITE);
-        set.setValueTextSize(9f);
-        set.setDrawValues(false);
-        return set;
-    }
-
-    private Thread thread;
-
-    private void feedMultiple() {
-
-        if (thread != null)
-            thread.interrupt();
-
-        final Runnable runnable = new Runnable() {
-
-            @Override
-            public void run() {
-                addEntry();
-            }
-        };
-
-        thread = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                for (int i = 0; i < 1000; i++) {
-
-                    // Don't generate garbage runnables inside the loop.
-                    runOnUiThread(runnable);
-
-                    try {
-                        Thread.sleep(25);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-
-        thread.start();
+        mChart.getData().addEntry(new Entry(mChart.getData().getDataSetByIndex(i).getEntryCount(), (float) value), i);
+        mChart.getData().notifyDataChanged();
+        mChart.notifyDataSetChanged();
+        mChart.moveViewToX(mChart.getData().getDataSetByIndex(i).getEntryCount());
     }
 
     @Override
@@ -331,15 +241,6 @@ public class MainActivity extends FragmentActivity implements
     @Override
     public void onNothingSelected() {
         Log.i("Nothing selected", "Nothing selected.");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        if (thread != null) {
-            thread.interrupt();
-        }
     }
 
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {

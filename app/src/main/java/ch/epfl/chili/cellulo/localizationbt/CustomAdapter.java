@@ -1,6 +1,7 @@
 package ch.epfl.chili.cellulo.localizationbt;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,25 +14,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CustomAdapter extends BaseAdapter {
+    private int MAX_DEVICES = 100;
+    private List<String> macs = new ArrayList<String>();
+    private List<String> names = new ArrayList<String>();
+    private boolean[] mItemChecked = new boolean[MAX_DEVICES];
+    private Context mContext = null;
+    private int sz = 0;
 
-    private List<String> macs, names;
-    private boolean[] mItemChecked;
-    private Context mContext;
-
-    public CustomAdapter(Context context, ArrayList<String> macs_, ArrayList<String> names_) {
-        mContext = context;
-        macs = macs_;
-        names = names_;
-        int L = getCount();
-        mItemChecked = new boolean[L];
-
-        for (int i = 0; i < L; i++) {
+    public CustomAdapter() {
+        for (int i = 0; i < MAX_DEVICES; i++)
             mItemChecked[i] = false;
-        }
+    }
+
+    public void setContext(Context context) {
+        mContext = context;
+    }
+
+    public void addElement(String mac, String name) {
+        macs.add(mac);
+        names.add(name);
+        sz++;
     }
 
     public int getCount() {
-        return macs.size();
+        return(sz);
     }
 
     @Override
@@ -50,6 +56,9 @@ public class CustomAdapter extends BaseAdapter {
 
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
+        if(position >= getCount())
+            return(convertView);
+
         final ViewHolder holder;
         LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
@@ -77,6 +86,15 @@ public class CustomAdapter extends BaseAdapter {
                     }
                 });
         return convertView;
+    }
+
+    public ArrayList<String> getMacs()
+    {
+        ArrayList<String> res = new ArrayList<String>();
+        for(int i = 0; i < sz; i++)
+            if(mItemChecked[i]) res.add(macs.get(i));
+
+        return(res);
     }
 
     private class ViewHolder {
