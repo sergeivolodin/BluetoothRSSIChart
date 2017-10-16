@@ -45,6 +45,7 @@ public class MainActivity extends FragmentActivity implements
     private static final int MY_PERMISSION_REQUEST_CONSTANT = 1;
     public static ArrayList<String> macs = new ArrayList<String>();
     private ArrayList<BluetoothLeService> LEs = null;
+    private Thread t = null;
 
 
     private int[] mColors = new int[] {
@@ -82,18 +83,14 @@ public class MainActivity extends FragmentActivity implements
     public void refresh1(int i) {
         if(LEs == null)
             return;
-        if(iterationsSinceConnect.get(i) > 10 && LEs.get(i).last_rssi_success == 0) {
+        if(iterationsSinceConnect.get(i) > 5 && LEs.get(i).last_rssi_success == 0) {
             reconnect1(i);
             return;
         }
 
-        if(LEs.get(i).last_rssi_success == 1)
-            addEntry(i, LEs.get(i).last_rssi);
-        else
-            addEntry(i, -100);
+        addEntry(i, LEs.get(i).last_rssi);
 
-        int iterationsBeforeRSSI = 5;
-        if(iterationsSinceConnect.get(i) >= iterationsBeforeRSSI) {
+        if(iterationsSinceConnect.get(i) >= 3) {
             LEs.get(i).readRssi();
         }
 
@@ -197,10 +194,16 @@ public class MainActivity extends FragmentActivity implements
         }
     }
 
+    public void stopUpdateThread(View v)
+    {
+        if(t != null)
+            t.interrupt();
+    }
+
     private void spawnUpdateThread() {
         if(LEs == null)
             return;
-        Thread t = new Thread() {
+        t = new Thread() {
 
             @Override
             public void run() {
