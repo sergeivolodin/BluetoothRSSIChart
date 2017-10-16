@@ -27,10 +27,17 @@ public class MainActivity extends Activity {
 
     private static final int REQUEST_ENABLE_BT = 1;
     private static final int MY_PERMISSION_REQUEST_CONSTANT = 1;
-    public static final String deviceAddress = "00:06:66:74:3E:93";
+    public static final String deviceAddress = "00:06:66:74:43:01";
     private BluetoothAdapter BTAdapter;
     private BluetoothGatt mBluetoothGatt;
     private BluetoothLeService LE = new BluetoothLeService();
+
+    public void reconnect(View v) {
+        LE.disconnect();
+        LE.close();
+        LE.initialize(getApplicationContext());
+        LE.connect(deviceAddress);
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
@@ -55,9 +62,6 @@ public class MainActivity extends Activity {
                 updateDevices();
             }
         });*/
-
-        LE.initialize(getApplicationContext());
-        LE.connect(deviceAddress);
 
         Button button = (Button) findViewById(R.id.button1);
         button.setOnClickListener(new OnClickListener() {

@@ -91,7 +91,7 @@ public class BluetoothLeService extends Service{
         }
 
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
-            Log.d(TAG, "onReadRemoteRssi");
+            Log.d(TAG, "onReadRemoteRssi " + rssi + " " + status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_GATT_RSSI, rssi);
             } else {
