@@ -15,11 +15,17 @@
  */
 
 package ch.epfl.chili.cellulo.localizationbt;
-import java.util.List;
-import java.util.UUID;
-
+import android.app.Activity;
 import android.app.Service;
-//import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
@@ -27,21 +33,19 @@ import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
+
+import java.util.List;
+
+//import android.app.Activity;
 //import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothProfile;
 
 
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class BluetoothLeService extends Service{
     private final static String TAG = BluetoothLeService.class.getSimpleName();
+
+    public int last_rssi = 0;
+    public int last_rssi_success = 0;
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -92,8 +96,12 @@ public class BluetoothLeService extends Service{
 
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             Log.d(TAG, "onReadRemoteRssi " + rssi + " " + status);
+
+            last_rssi = rssi;
+
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_GATT_RSSI, rssi);
+                last_rssi_success = 1;
             } else {
                 Log.w(TAG, "onReadRemoteRssi received: " + status);
             }
@@ -289,6 +297,8 @@ public class BluetoothLeService extends Service{
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+
+        last_rssi_success = 0;
 
         mBluetoothGatt.readRemoteRssi();
     }
