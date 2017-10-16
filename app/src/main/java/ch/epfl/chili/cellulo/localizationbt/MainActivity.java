@@ -143,8 +143,8 @@ public class MainActivity extends FragmentActivity implements
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTypeface(mTfLight);
         leftAxis.setTextColor(Color.WHITE);
-        leftAxis.setAxisMaximum(100f);
-        leftAxis.setAxisMinimum(-100f);
+        leftAxis.setAxisMaximum(20f);
+        leftAxis.setAxisMinimum(-50f);
         leftAxis.setDrawGridLines(true);
 
         YAxis rightAxis = mChart.getAxisRight();
