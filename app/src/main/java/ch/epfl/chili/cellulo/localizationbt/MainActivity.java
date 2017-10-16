@@ -2,10 +2,12 @@ package ch.epfl.chili.cellulo.localizationbt;
 
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,12 +30,14 @@ import com.github.mikephil.charting.utils.ColorTemplate;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
-public class MainActivity extends DemoBase implements
+public class MainActivity extends FragmentActivity implements
         OnChartValueSelectedListener {
 
     private int iterationsSinceConnect = 0;
     private static int iterationsBeforeRSSI = 5;
 
+    protected Typeface mTfRegular;
+    protected Typeface mTfLight;
     private LineChart mChart;
     private static final int MY_PERMISSION_REQUEST_CONSTANT = 1;
     public static final String deviceAddress = "00:06:66:74:3E:93";
@@ -79,6 +83,10 @@ public class MainActivity extends DemoBase implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mTfRegular = Typeface.createFromAsset(getAssets(), "OpenSans-Regular.ttf");
+        mTfLight = Typeface.createFromAsset(getAssets(), "OpenSans-Light.ttf");
+
         setContentView(R.layout.activity_main);
 
         ActivityCompat.requestPermissions(this, new String[]{ACCESS_FINE_LOCATION}, MY_PERMISSION_REQUEST_CONSTANT);
